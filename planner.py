@@ -1,5 +1,6 @@
 import sys
 from mdp import MDP
+from agent import Agent
 
 # Validate arguments
 assert len(sys.argv) == 3
@@ -9,4 +10,5 @@ input_filepath = sys.argv[1]
 algorithm = sys.argv[2]
 
 mdp = MDP(input_filepath)
-print(mdp.transition_function[0,])
+agent = Agent(mdp, algorithm)
+agent.solve()
