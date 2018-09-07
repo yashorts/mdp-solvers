@@ -1,5 +1,6 @@
 import numpy as np
 from functools import reduce
+from scipy import optimize
 
 
 class Agent:
@@ -17,9 +18,39 @@ class Agent:
 
     def solve(self):
         if self.algorithm == 'lp':
-            pass
+            self.lp()
         elif self.algorithm == 'hpi':
             self.hpi()
+
+    def lp(self):
+        T = self.mdp.transition_function
+        R = self.mdp.reward_function
+        gamma = self.mdp.gamma
+        # A_ub
+        A_ub = []
+        # b_ub
+        b_ub = []
+        # objective function
+        c = []
+        for s in range(self.mdp.num_states):
+            c.append(1)
+            for a in range(self.mdp.num_actions):
+                coeff_of_s = []
+                constant_of_s = 0
+                for s_prime in range(self.mdp.num_states):
+                    constant_of_s += -1 * T[s, a, s_prime] * R[s, a, s_prime]
+                    if s == s_prime:
+                        coeff_of_s.append(gamma * T[s, a, s_prime] - 1)
+                    else:
+                        coeff_of_s.append(gamma * T[s, a, s_prime])
+                A_ub.append(coeff_of_s)
+                b_ub.append(constant_of_s)
+        A_ub = np.asarray(A_ub)
+        b_ub = np.asarray(b_ub)
+
+        self.value_function = optimize.linprog(c, A_ub=A_ub, b_ub=b_ub).x
+        self.policy = self.get_policy_from_value_function()
+        self.print_answer()
 
     def hpi(self):
         T = self.mdp.transition_function
@@ -44,16 +75,20 @@ class Agent:
         b = np.asarray(b)
         # reset value function
         self.value_function = np.linalg.solve(A, b)
-        # get new policy
+
+        # policy improvement using new value function
         new_policy = self.get_policy_from_value_function()
 
         if new_policy == self.policy:
-            for s in range(self.mdp.num_states):
-                print(self.value_function[s], '\t', self.policy[s])
+            self.print_answer()
             return
         else:
             self.policy = new_policy
             self.hpi()
+
+    def print_answer(self):
+        for s in range(self.mdp.num_states):
+            print(self.value_function[s], '\t', self.policy[s])
 
     def get_policy_from_value_function(self):
         return [self.argmax_actions(s) for s in range(self.mdp.num_states)]
