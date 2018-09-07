@@ -9,4 +9,4 @@ else
     algorithm=$2;    
 fi
 
-python3 planner.py $mdp $algorithm
+python3 extras/planner.py $mdp $algorithm
