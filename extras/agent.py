@@ -32,8 +32,11 @@ class Agent:
         b_ub = []
         # objective function
         c = []
+        # bounds
+        bounds = []
         for s in range(self.mdp.num_states):
             c.append(1)
+            bounds.append((None, None))
             for a in range(self.mdp.num_actions):
                 coeff_of_s = []
                 constant_of_s = 0
@@ -73,8 +76,18 @@ class Agent:
             b.append(constant_of_s)
         A = np.asarray(A)
         b = np.asarray(b)
-        # reset value function
-        self.value_function = np.linalg.solve(A, b)
+
+        if np.linalg.det(A) == 0 and self.mdp.type == 'episodic' and gamma == 1:
+            A = A[:len(A) - 1, :len(A[0]) - 1]
+            b = b[:len(b) - 1]
+            # reset value function
+            new_value_function = np.linalg.solve(A, b)
+            new_value_function = list(new_value_function)
+            new_value_function.append(0)
+            self.value_function = new_value_function
+        else:
+            # reset value function
+            self.value_function = np.linalg.solve(A, b)
 
         # policy improvement using new value function
         new_policy = self.get_policy_from_value_function()

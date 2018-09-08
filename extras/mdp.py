@@ -28,7 +28,7 @@ class MDP:
         self.gamma = float(raw_mdp[2 + 2 * self.num_states * self.num_actions].strip())
         # print(self.gamma)
         # type
-        self.type = raw_mdp[2 + 2 * self.num_states * self.num_actions + 1]
+        self.type = raw_mdp[2 + 2 * self.num_states * self.num_actions + 1].strip()
         # print(self.type)
 
     def __str__(self):
