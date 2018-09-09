@@ -1,0 +1,3 @@
+- [x] handle gamma = 1
+- [x] check on sl2
+- [ ] solve gamblers problem

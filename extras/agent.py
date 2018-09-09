@@ -32,25 +32,54 @@ class Agent:
         b_ub = []
         # objective function
         c = []
-        for s in range(self.mdp.num_states):
-            c.append(1)
-            for a in range(self.mdp.num_actions):
-                coeff_of_s = []
-                constant_of_s = 0
-                for s_prime in range(self.mdp.num_states):
-                    constant_of_s += -1 * T[s, a, s_prime] * R[s, a, s_prime]
-                    if s == s_prime:
-                        coeff_of_s.append(gamma * T[s, a, s_prime] - 1)
-                    else:
-                        coeff_of_s.append(gamma * T[s, a, s_prime])
-                A_ub.append(coeff_of_s)
-                b_ub.append(constant_of_s)
-        A_ub = np.asarray(A_ub)
-        b_ub = np.asarray(b_ub)
+        # bounds
+        bounds = []
+        if gamma == 1 and self.mdp.type == 'episodic':
+            for s in range(self.mdp.num_states - 1):
+                c.append(1)
+                bounds.append((None, None))
+                for a in range(self.mdp.num_actions):
+                    coeff_of_s = []
+                    constant_of_s = []
+                    for s_prime in range(self.mdp.num_states):
+                        constant_of_s.append(-1 * T[s, a, s_prime] * R[s, a, s_prime])
+                        if s_prime != self.mdp.num_states - 1:
+                            if s == s_prime:
+                                coeff_of_s.append(gamma * T[s, a, s_prime] - 1)
+                            else:
+                                coeff_of_s.append(gamma * T[s, a, s_prime])
+                    A_ub.append(coeff_of_s)
+                    b_ub.append(sum(constant_of_s))
+            A_ub = np.asarray(A_ub)
+            b_ub = np.asarray(b_ub)
 
-        self.value_function = optimize.linprog(c, A_ub=A_ub, b_ub=b_ub).x
-        self.policy = self.get_policy_from_value_function()
-        self.print_answer()
+            new_value_function = list(optimize.linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=bounds).x)
+            new_value_function.append(0)
+            self.value_function = np.asarray(new_value_function, dtype=float)
+            self.policy = self.get_policy_from_value_function()
+            self.print_answer()
+
+        else:
+            for s in range(self.mdp.num_states):
+                c.append(1)
+                bounds.append((None, None))
+                for a in range(self.mdp.num_actions):
+                    coeff_of_s = []
+                    constant_of_s = 0
+                    for s_prime in range(self.mdp.num_states):
+                        constant_of_s += -1 * T[s, a, s_prime] * R[s, a, s_prime]
+                        if s == s_prime:
+                            coeff_of_s.append(gamma * T[s, a, s_prime] - 1)
+                        else:
+                            coeff_of_s.append(gamma * T[s, a, s_prime])
+                    A_ub.append(coeff_of_s)
+                    b_ub.append(constant_of_s)
+            A_ub = np.asarray(A_ub)
+            b_ub = np.asarray(b_ub)
+
+            self.value_function = optimize.linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=bounds).x
+            self.policy = self.get_policy_from_value_function()
+            self.print_answer()
 
     def hpi(self):
         T = self.mdp.transition_function
@@ -73,8 +102,18 @@ class Agent:
             b.append(constant_of_s)
         A = np.asarray(A)
         b = np.asarray(b)
-        # reset value function
-        self.value_function = np.linalg.solve(A, b)
+
+        if np.linalg.det(A) == 0 and self.mdp.type == 'episodic' and gamma == 1:
+            A = A[:len(A) - 1, :len(A[0]) - 1]
+            b = b[:len(b) - 1]
+            # reset value function
+            new_value_function = np.linalg.solve(A, b)
+            new_value_function = list(new_value_function)
+            new_value_function.append(0)
+            self.value_function = new_value_function
+        else:
+            # reset value function
+            self.value_function = np.linalg.solve(A, b)
 
         # policy improvement using new value function
         new_policy = self.get_policy_from_value_function()
