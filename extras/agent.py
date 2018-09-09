@@ -107,10 +107,18 @@ class Agent:
             A = A[:len(A) - 1, :len(A[0]) - 1]
             b = b[:len(b) - 1]
             # reset value function
-            new_value_function = np.linalg.solve(A, b)
-            new_value_function = list(new_value_function)
+            # print(A)
+            # print(b)
+            new_value_function = list(np.linalg.solve(A, b))
             new_value_function.append(0)
-            self.value_function = new_value_function
+            new_value_function = np.asarray(new_value_function)
+            # print(new_value_function, self.value_function)
+            try:
+                np.testing.assert_almost_equal(self.value_function, new_value_function, decimal=10)
+                self.print_answer()
+                return
+            except AssertionError:
+                self.value_function = new_value_function
         else:
             # reset value function
             self.value_function = np.linalg.solve(A, b)
